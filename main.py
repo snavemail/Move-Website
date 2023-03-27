@@ -7,26 +7,41 @@ from wtforms import StringField, SubmitField
 from wtforms.validators import DataRequired
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
+app.config['SECRET_KEY'] = "SECRET KEY"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///top-10-movies.db'
 Bootstrap(app)
 db = SQLAlchemy(app)
 MOVIE_DB_SEARCH_URL = "https://api.themoviedb.org/3/search/movie"
-MOVIE_DB_API_KEY = "3657c6fd6a5def3c43a368e773bd8295"
+# Get you api key from the website
+MOVIE_DB_API_KEY = "API_KEY"
 
 
 class RateMovieForm(FlaskForm):
+    """
+    Makes a form.
+    Used to ask the user to rate the movie out of 10 and to give a review
+    """
     rating = StringField('Your Rating Out of 10 e.g. 7.5', validators=[DataRequired()])
     review = StringField('Your Review', validators=[DataRequired()])
     submit = SubmitField('Done')
 
 
 class AddMovieForm(FlaskForm):
+    """
+    Makes a form.
+    Used to ask the user to search for a movie
+    """
     title = StringField('Movie Title', validators=[DataRequired()])
     submit = SubmitField('Add Movie')
 
 
 class Movie(db.Model):
+    """
+    Makes a movie database.
+    Creates a movie data base.
+    Use db.createall() to create the movie database
+    Only needs to be run once.
+    """
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(250), unique=True, nullable=False)
     year = db.Column(db.Integer, nullable=False)
@@ -40,12 +55,17 @@ class Movie(db.Model):
         return f'<Movie {self.title}>'
 
 
+# Only needs to be written once. Can be commented out afterwards
 with app.app_context():
     db.create_all()
 
 
 @app.route("/")
 def home():
+    """
+    Renders home page
+    Shows all the movies in the database ranked in order from lowest to highest (10 - 1)
+    """
     all_movies = db.session.query(Movie).order_by(Movie.rating).all()
     # This line loops through all the movies
     for i in range(len(all_movies)):
@@ -57,6 +77,10 @@ def home():
 
 @app.route("/edit", methods=["GET", "POST"])
 def rate_movie():
+    """
+    Renders edit page
+    Allows users to edit the movie they clicked on with a post request.
+    """
     form = RateMovieForm()
     movie_id = request.args.get('id')
     movie_selected = Movie.query.get(movie_id)
@@ -70,6 +94,9 @@ def rate_movie():
 
 @app.route("/delete")
 def delete_movie():
+    """
+    Deletes the movie with the given id
+    """
     movie_id = request.args.get('id')
     movie_to_delete = Movie.query.get(movie_id)
     db.session.delete(movie_to_delete)
@@ -79,6 +106,12 @@ def delete_movie():
 
 @app.route("/add", methods=["GET", "POST"])
 def add_movie():
+    """
+    Renders add_movie page. Allows users to search up a movie and then it
+    redirects the user to another page that uses the api to render all the movies
+    with the given name in the database from themoviedb.org's database
+    using an API.
+    """
     form = AddMovieForm()
     if request.method == "POST":
         if form.validate_on_submit():
@@ -92,6 +125,11 @@ def add_movie():
 
 @app.route("/find")
 def get_movie_details():
+    """
+    When a movie is clicked on, the movie gets added to the data base and it redirects the user
+    to edit the movie details such as the rating and the review. 
+    The rest of the movie details gets autofilled from the API.
+    """
     movie_id = request.args.get('id')
     if movie_id:
         response = requests.get(f"https://api.themoviedb.org/3/movie/{movie_id}?api_key="
@@ -109,4 +147,7 @@ def get_movie_details():
 
 
 if __name__ == '__main__':
+    """
+    Runs the program
+    """
     app.run(debug=True)
